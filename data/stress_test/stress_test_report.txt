@@ -1,0 +1,41 @@
+============================================================
+STRESS TEST RESULTS — OVERALL
+============================================================
+  Accuracy  : 0.9850
+  Precision : 1.0000
+  Recall    : 0.9800
+  F1        : 0.9899
+  AUC-ROC   : 1.0000
+
+              precision    recall  f1-score   support
+
+        Real       0.94      1.00      0.97        50
+AI-generated       1.00      0.98      0.99       150
+
+    accuracy                           0.98       200
+   macro avg       0.97      0.99      0.98       200
+weighted avg       0.99      0.98      0.99       200
+
+============================================================
+PER-SOURCE BREAKDOWN
+============================================================
+
+  claude-haiku-adversarial  [AI (should be flagged)]
+    n=50  flagged_as_AI=49  accuracy=0.980
+    avg confidence (P(AI)): 0.980  ±0.118
+    missed (false negatives): 1 / 50
+
+  claude-sonnet  [AI (should be flagged)]
+    n=50  flagged_as_AI=49  accuracy=0.980
+    avg confidence (P(AI)): 0.980  ±0.139
+    missed (false negatives): 1 / 50
+
+  gpt-4o  [AI (should be flagged)]
+    n=50  flagged_as_AI=49  accuracy=0.980
+    avg confidence (P(AI)): 0.978  ±0.140
+    missed (false negatives): 1 / 50
+
+  yelp-test-split  [Real (should NOT be flagged)]
+    n=50  flagged_as_AI=0  accuracy=1.000
+    avg confidence (P(AI)): 0.000  ±0.000
+    wrongly flagged (false positives): 0 / 50

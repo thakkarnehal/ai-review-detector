@@ -23,9 +23,9 @@ data/raw/*.gz
 data/processed/*.csv
 
 # Models (large files)
-models/*.pt
-models/*.bin
-models/*.safetensors
+models/**/*.pt
+models/**/*.bin
+models/**/*.safetensors
 models/checkpoint-*/
 
 # Jupyter

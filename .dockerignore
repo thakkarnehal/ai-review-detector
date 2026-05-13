@@ -1,0 +1,31 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Data files (large, not needed in image)
+data/
+
+# Model artifacts not needed
+models/best_model/*.png
+models/*.png
+models/*.txt
+models/*.json
+models/misclassifications.csv
+models/training_metrics.json
+
+# Scripts and notebooks (not needed at runtime)
+scripts/
+notebooks/
+
+# Git
+.git/
+.gitignore
+
+# Misc
+.env
+.env.example
+*.md
+stress_test/

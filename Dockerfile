@@ -12,7 +12,7 @@ COPY models/best_model/ models/best_model/
 # Copy API code
 COPY api/ api/
 
-# Cloud Run expects port 8080
+# App Runner / Cloud Run default port
 ENV PORT=8080
 EXPOSE 8080
 

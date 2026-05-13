@@ -236,7 +236,7 @@ def main(target_count: int):
     import pandas as pd
     df = pd.DataFrame(records)
     print("\nStar rating distribution:")
-    print(df["star_rating"].value_counts().sort_index().to_string())
+    print(df["star_rating"].astype(int).value_counts().sort_index().to_string())
     print("\nCuisine distribution (top 10):")
     print(df["cuisine"].value_counts().head(10).to_string())
 

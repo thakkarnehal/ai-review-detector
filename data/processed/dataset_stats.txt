@@ -1,0 +1,25 @@
+Dataset Statistics
+========================================
+
+Total reviews : 13,500
+  Real (0)    : 6,000
+  Fake (1)    : 7,500
+
+Fake source breakdown:
+source
+claude-haiku    5000
+gpt-4o          2500
+
+Train : 10,800
+Val   : 1,350
+Test  : 1,350
+
+Word count stats:
+count    13500.000000
+mean       110.871185
+std         65.897208
+min         20.000000
+25%         55.000000
+50%         95.000000
+75%        154.000000
+max        300.000000

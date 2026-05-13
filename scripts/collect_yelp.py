@@ -47,9 +47,9 @@ def main():
     print(f"Loaded {len(dataset):,} reviews. Sampling {TARGET_PER_STAR} per star rating...")
 
     # Convert to pandas for easier manipulation
-    df = dataset.to_pandas()
-    df.columns = ["text", "label_raw"]  # HF cols: text, label (0-indexed stars)
-    df["star_rating"] = df["label_raw"] + 1  # shift to 1-5
+    df = dataset.to_pandas()  # HF cols: label (0-indexed), text
+    df = df.rename(columns={"label": "label_raw"})
+    df["star_rating"] = df["label_raw"].astype(int) + 1  # shift to 1-5
     df["word_count"] = df["text"].apply(word_count)
 
     # Filter by length

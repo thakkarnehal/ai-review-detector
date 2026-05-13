@@ -1,0 +1,174 @@
+/* AI Review Detector - Styles */
+
+/* ========== BADGES ========== */
+.ai-review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
+  z-index: 1000;
+}
+
+.ai-review-badge--pending {
+  background: #f5f5f5;
+  color: #757575;
+  border: 1px solid #e0e0e0;
+}
+
+.ai-review-badge--real {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.ai-review-badge--flagged {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+}
+
+.ai-review-badge--error {
+  background: #fff3e0;
+  color: #ef6c00;
+  border: 1px solid #ffcc80;
+}
+
+.ai-badge-icon {
+  font-size: 14px;
+}
+
+.ai-badge-text {
+  white-space: nowrap;
+}
+
+/* ========== FLOATING WIDGET ========== */
+.ai-review-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 260px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  z-index: 10000;
+  overflow: hidden;
+}
+
+.ai-widget-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.ai-widget-icon {
+  font-size: 18px;
+}
+
+.ai-widget-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ai-widget-minimize {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.ai-widget-minimize:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.ai-widget-body {
+  padding: 16px;
+}
+
+.ai-widget-body.ai-widget-hidden {
+  display: none;
+}
+
+.ai-widget-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.ai-widget-stat:last-child {
+  margin-bottom: 0;
+}
+
+.ai-widget-label {
+  font-size: 13px;
+  color: #666;
+}
+
+.ai-widget-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.ai-widget-flagged {
+  color: #c62828 !important;
+}
+
+.ai-widget-adjusted {
+  font-size: 16px;
+}
+
+.ai-widget-divider {
+  height: 1px;
+  background: #eee;
+  margin: 12px 0;
+}
+
+/* ========== ANIMATIONS ========== */
+@keyframes ai-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.ai-review-badge--pending {
+  animation: ai-pulse 1.5s ease-in-out infinite;
+}
+
+/* ========== DARK MODE SUPPORT ========== */
+@media (prefers-color-scheme: dark) {
+  .ai-review-widget {
+    background: #1e1e1e;
+  }
+
+  .ai-widget-label {
+    color: #aaa;
+  }
+
+  .ai-widget-value {
+    color: #fff;
+  }
+
+  .ai-widget-divider {
+    background: #333;
+  }
+}

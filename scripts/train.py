@@ -184,8 +184,8 @@ def save_training_curves(history, out_path):
     axes[0].set_xlabel("Epoch")
     axes[0].legend()
 
-    axes[1].plot(epochs, history["val_f1"],  label="Val F1")
-    axes[1].plot(epochs, history["val_acc"], label="Val Accuracy")
+    axes[1].plot(epochs, history["val_f1"],       label="Val F1")
+    axes[1].plot(epochs, history["val_accuracy"], label="Val Accuracy")
     axes[1].set_title("Val metrics per epoch")
     axes[1].set_xlabel("Epoch")
     axes[1].legend()
@@ -287,7 +287,7 @@ def main(epochs: int, batch_size: int, lr: float, patience: int, eval_only: bool
 
         best_val_f1      = 0.0
         epochs_no_improve = 0
-        history = {k: [] for k in ["train_loss", "val_loss", "val_acc",
+        history = {k: [] for k in ["train_loss", "val_loss", "val_accuracy",
                                     "val_precision", "val_recall", "val_f1", "val_auc_roc"]}
 
         print(f"Training for up to {epochs} epochs (early stopping patience={patience})...\n")
