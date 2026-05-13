@@ -1,6 +1,8 @@
 # AI-Generated Restaurant Review Detector
 
-A DistilBERT classifier that detects AI-generated restaurant reviews, with an "adjusted rating" feature that recalculates a restaurant's star rating after stripping detected fakes.
+A DistilBERT classifier that detects AI-generated restaurant reviews, with an "adjusted rating" feature that recalculates a restaurant's star rating after stripping detected reviews.
+
+> **Note:** This model detects *AI-generated writing patterns*, not intent to deceive. A genuine review written with AI assistance may be flagged; a manually written fake review will not. "AI-generated" and "fake" overlap but are not the same thing.
 
 ## Architecture
 
@@ -172,6 +174,7 @@ The extension auto-scans reviews on page load, adds a badge to each review (✓ 
 - **HTTP only:** The API runs over HTTP. Chrome logs a mixed-content warning when the extension calls it from HTTPS Yelp/TripAdvisor pages. The extension works via a background service worker that bypasses the block, but the proper fix is HTTPS (requires a domain + ALB).
 - **Dynamic IP:** The Fargate task gets a new public IP on every deployment. The extension's API URL must be manually updated after each redeploy.
 - **Training data skew:** The model was trained primarily on Claude-generated fakes. It generalizes well to GPT-4o (98% accuracy in stress tests) but may be less robust against future models or heavily human-edited AI text.
+- **AI-assisted ≠ fake:** The model flags AI writing style, not dishonesty. A reviewer who used ChatGPT to polish a real visit will likely be flagged. A person who fabricated an experience in plain, casual prose will not. Treat flags as a signal of AI authorship, not proof of deception.
 - **Yelp DOM selectors:** The Yelp scraping logic targets CSS class patterns that can break if Yelp updates their frontend.
 - **No auth on the API:** The `/detect` endpoint is publicly accessible with no rate limiting. Fine for personal use, not for production.
 - **Review length floor:** Reviews under 80 characters are skipped by the extension (too short to classify reliably).
