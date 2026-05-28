@@ -1,189 +1,58 @@
 # AI-Generated Restaurant Review Detector
 
-A DistilBERT classifier that detects AI-generated restaurant reviews, with an "adjusted rating" feature that recalculates a restaurant's star rating after stripping detected reviews.
+> **Status: Decommissioned.** The API is offline. Kept as a reference and retrospective.
 
-> **Note:** This model detects *AI-generated writing patterns*, not intent to deceive. A genuine review written with AI assistance may be flagged; a manually written fake review will not. "AI-generated" and "fake" overlap but are not the same thing.
+A DistilBERT classifier that detects AI-generated restaurant reviews, with a Chrome extension that badges reviews on Yelp and TripAdvisor and recalculates star ratings after stripping flagged ones.
 
-## Architecture
+## What it does
 
-- **Model:** Fine-tuned `distilbert-base-uncased` (PyTorch + HuggingFace Transformers)
-- **Data:** ~5k real Yelp reviews + ~5k AI-generated fakes (Claude + GPT-4o)
-- **API:** FastAPI served on port 8080
-- **Deploy:** Docker → AWS ECR → ECS Fargate
-- **Extension:** Chrome extension for Yelp and TripAdvisor
+- Fine-tunes `distilbert-base-uncased` with a raw PyTorch training loop (no HuggingFace Trainer) to classify reviews as real or AI-generated
+- Generates a labeled dataset: ~5k real Yelp reviews + ~5k AI fakes from Claude Haiku and GPT-4o, with varied prompts across star ratings, cuisines, tones, and lengths
+- Serves a FastAPI inference API deployed on AWS ECS Fargate via Docker
+- Chrome extension that auto-scans Yelp and TripAdvisor pages, adds a badge per review, and shows an adjusted star rating in a floating widget
 
-## Project Structure
+## Why I stopped
 
-```
-ai-review-detector/
-├── data/
-│   ├── raw/              # yelp_reviews.csv, fake_reviews.csv, gpt_reviews.csv
-│   ├── processed/        # train.csv, val.csv, test.csv
-│   └── stress_test/      # stress test results
-├── models/               # checkpoints, metrics, confusion matrix
-├── api/
-│   ├── main.py           # FastAPI app
-│   ├── model.py          # inference logic
-│   └── templates/        # HTML frontend
-├── extension/            # Chrome extension (Manifest V3)
-├── scripts/
-│   ├── collect_yelp.py        # download & sample Yelp reviews
-│   ├── generate_fake_reviews.py  # generate fakes via Claude API
-│   ├── generate_gpt_reviews.py   # generate fakes via GPT-4o
-│   ├── prepare_dataset.py        # combine, label, split
-│   └── stress_test.py            # evaluate on held-out adversarial set
-├── requirements.txt
-└── Dockerfile
-```
+The core problem is the task itself. AI detection is fundamentally adversarial and the approach doesn't scale to it.
 
-## Model Performance
+**The model learned prompt artifacts, not AI writing.** All fake reviews were generated from the same small set of system prompts and templates. The test set was sampled from that same generation process, which is why the in-distribution metrics came out perfect (1.0 accuracy, F1, AUC-ROC). That's not generalization — that's the model recognizing the fingerprint of my own prompts. On truly out-of-distribution text, those numbers wouldn't hold.
 
-Evaluated on 200 held-out reviews (50 real Yelp, 50 Claude Haiku adversarial, 50 Claude Sonnet, 50 GPT-4o):
+**The problem is harder than the scope.** AI detection is adversarial: the moment you publish a classifier, anyone generating fakes can probe it and engineer around it. Even teams doing this full-time (GPTZero, Originality.ai) have significant false positive rates on real human writing. A DistilBERT trained on ~5k self-generated examples was never going to close that gap. The right dataset would need to be large, diverse, and sourced from generators I had no hand in prompting — which is a much bigger project.
 
-| Metric | Score |
-|---|---|
-| Accuracy | 98.5% |
-| Precision | 100% |
-| Recall | 98.0% |
-| F1 | 98.99% |
-| AUC-ROC | 100% |
+**What fixing it would actually take:**
+- A large, externally sourced AI detection dataset (existing NLP papers have them)
+- Evaluation on held-out data generated with zero-shot prompts I didn't design
+- Accepting real false positives and building UX around uncertainty rather than binary flags
 
-Zero false positives on real Yelp reviews. Misses ~1 in 50 AI reviews across all model sources.
+That's a different project, and I'm not excited enough about AI detection specifically to build it.
 
-## Setup
+## What I learned
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+This was still a useful build. Things that came out of it:
 
-cp .env.example .env
-# Set ANTHROPIC_API_KEY and OPENAI_API_KEY in .env
-```
+- Writing a raw PyTorch training loop end-to-end: custom `Dataset`, `DataLoader`, `AdamW` + linear warmup scheduler, gradient clipping, early stopping, checkpointing by validation F1
+- Using `DistilBertModel` directly (not `DistilBertForSequenceClassification`) and attaching a custom classifier head
+- Handling class imbalance with `BCEWithLogitsLoss(pos_weight=...)` rather than oversampling
+- Building a data generation pipeline with checkpointing, retry logic, and star rating distributions that mirror real Yelp data
+- FastAPI: lifespan model loading, Pydantic v2 validators, singleton inference wrapper
+- Docker multi-platform builds (`--platform linux/amd64`) for ECS Fargate on Apple Silicon
+- Chrome extension Manifest V3: content scripts, background service worker, `chrome.storage.sync`, MutationObserver for infinite scroll
+- Deploying a containerized ML model to ECS Fargate with ECR
 
-## Data Collection
+## Known code issues (documented for reference)
 
-```bash
-python scripts/collect_yelp.py          # real Yelp reviews via HuggingFace datasets
-python scripts/generate_fake_reviews.py # Claude-generated fakes
-python scripts/generate_gpt_reviews.py  # GPT-4o-generated fakes
-python scripts/prepare_dataset.py       # combine, label, train/val/test split
-```
+- **`predict_batch` is not batched** — loops `predict()` one at a time instead of running a single batched forward pass
+- **`DistilBertClassifier` is copy-pasted** across `train.py`, `api/model.py`, and `stress_test.py` — should be one shared module
+- **MutationObserver leak in the extension** — `observeNewReviews` creates a new observer on every call without storing the reference or calling `.disconnect()`
+- **No auth or rate limiting on the API** — publicly exposed HTTP endpoint with `allow_origins=["*"]`
+- **HTML template opened with a relative path** — `open("api/templates/index.html")` breaks if uvicorn isn't started from the project root
+- **`MAX_LEN=256` may silently truncate** — subword tokenization means a 200-word review can exceed 256 tokens; DistilBERT supports up to 512
+- **Adjusted rating is computed from visible reviews only** — paginated platforms don't load the full review corpus, so the recalculated rating is from a nonrepresentative sample
 
-## Training
+## Stack
 
-```bash
-python scripts/train.py
-```
-
-Trains for up to 5 epochs with early stopping. Best checkpoint saved to `models/best_model/`.
-
-## Running the API Locally
-
-```bash
-uvicorn api.main:app --reload --port 8080
-```
-
-Open `http://localhost:8080` for the HTML frontend.
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/health` | GET | Liveness check |
-| `/detect` | POST | Classify a single review |
-| `/adjust-rating` | POST | Recalculate rating after stripping fakes |
-
-### `/detect`
-
-```bash
-curl -X POST http://localhost:8080/detect \
-  -H "Content-Type: application/json" \
-  -d '{"review_text": "Amazing tacos, will definitely come back!"}'
-```
-
-```json
-{"label": "Real", "confidence": 0.02, "flagged": false}
-```
-
-### `/adjust-rating`
-
-```bash
-curl -X POST http://localhost:8080/adjust-rating \
-  -H "Content-Type: application/json" \
-  -d '{
-    "reviews": [
-      {"text": "Great food!", "star_rating": 5},
-      {"text": "Worst experience ever.", "star_rating": 1}
-    ]
-  }'
-```
-
-```json
-{
-  "original_rating": 3.0,
-  "adjusted_rating": 5.0,
-  "flagged_count": 1,
-  "total_reviews": 2
-}
-```
-
-## Docker
-
-```bash
-# Build for local (Apple Silicon)
-docker build -t ai-review-detector .
-
-# Build for AWS (required for ECS Fargate)
-docker buildx build --platform linux/amd64 -t ai-review-detector .
-```
-
-## AWS Deployment (ECS Fargate)
-
-The API is deployed to ECS Fargate in `us-east-1`. To redeploy after changes:
-
-```bash
-# Authenticate with ECR
-aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin 724680459083.dkr.ecr.us-east-1.amazonaws.com
-
-# Build and push (must use linux/amd64 for Fargate)
-docker buildx build --platform linux/amd64 -t review-detector .
-docker tag review-detector:latest \
-  724680459083.dkr.ecr.us-east-1.amazonaws.com/review-detector:latest
-docker push 724680459083.dkr.ecr.us-east-1.amazonaws.com/review-detector:latest
-
-# Force new deployment
-aws ecs update-service --cluster review-detector \
-  --service review-detector --force-new-deployment
-```
-
-The Fargate task is assigned a public IP on each deployment. After redeployment, update the `API_URL` in `extension/content.js` and `extension/popup.js` to the new IP.
-
-## Chrome Extension
-
-Located in `extension/`. Works on `yelp.com/biz/*` and `tripadvisor.com/Restaurant*`.
-
-**To load in Chrome:**
-1. Go to `chrome://extensions`
-2. Enable Developer mode
-3. Click "Load unpacked" → select the `extension/` folder
-
-The extension auto-scans reviews on page load, adds a badge to each review (✓ authentic / 🚩 AI-generated), and shows a floating widget with the adjusted star rating.
-
-## Limitations
-
-- **HTTP only:** The API runs over HTTP. Chrome logs a mixed-content warning when the extension calls it from HTTPS Yelp/TripAdvisor pages. The extension works via a background service worker that bypasses the block, but the proper fix is HTTPS (requires a domain + ALB).
-- **Dynamic IP:** The Fargate task gets a new public IP on every deployment. The extension's API URL must be manually updated after each redeploy.
-- **Training data skew:** The model was trained primarily on Claude-generated fakes. It generalizes well to GPT-4o (98% accuracy in stress tests) but may be less robust against future models or heavily human-edited AI text.
-- **AI-assisted ≠ fake:** The model flags AI writing style, not dishonesty. A reviewer who used ChatGPT to polish a real visit will likely be flagged. A person who fabricated an experience in plain, casual prose will not. Treat flags as a signal of AI authorship, not proof of deception.
-- **Yelp DOM selectors:** The Yelp scraping logic targets CSS class patterns that can break if Yelp updates their frontend.
-- **No auth on the API:** The `/detect` endpoint is publicly accessible with no rate limiting. Fine for personal use, not for production.
-- **Review length floor:** Reviews under 80 characters are skipped by the extension (too short to classify reliably).
-
-## Next Steps
-
-- **HTTPS:** Add an ALB with an ACM certificate to serve the API over HTTPS and eliminate the mixed-content warning. Also gives a stable DNS name so the extension URL never needs updating.
-- **Rate limiting:** Add per-IP rate limiting to the API (e.g. slowapi) to prevent abuse.
-- **Expand training data:** Add more AI model sources (Gemini, Llama) and human-edited AI text to make the classifier more robust.
-- **TripAdvisor support:** The extension has TripAdvisor selectors but they're untested — validate and fix the DOM targeting.
-- **Chrome Web Store:** Package and publish the extension so others can install it without loading unpacked.
-- **Retrain on failure cases:** Review `models/misclassifications.csv` and add those examples back into training.
+- Python, PyTorch, HuggingFace Transformers
+- FastAPI, Pydantic, Uvicorn
+- Docker, AWS ECR, ECS Fargate
+- Chrome Extension (Manifest V3)
+- Anthropic API (Claude Haiku), OpenAI API (GPT-4o)
